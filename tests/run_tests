@@ -1,0 +1,8 @@
+#!/bin/sh
+
+python test_energies.py
+python test_halo_io.py
+python test_MBP_io.py
+python test_MBP.py
+
+
