@@ -7,9 +7,9 @@ from Halo import *
 
 # TODO: merge this usage with the halo infrastructure for harvest
 
-def get_populated_halos(file_paths, rs_path):
+def get_populated_halos(particle_paths, rs_path, timestep=0, num_timesteps=1):
     
-    particles = get_particle_table(file_paths)
+    particles = get_particle_table(particle_paths)
     halos = get_halo_table(rs_path)
 
     populated_halos = [] ; id_list = [] ; halo_index = 0
@@ -18,15 +18,21 @@ def get_populated_halos(file_paths, rs_path):
         while halo_index<len(halos) and halos['ID'][halo_index] != halo_id: halo_index += 1
         if halo_index==len(halos): break
 
+        #check if we're putting the particle into the right halo
         if len(populated_halos)==0 or populated_halos[-1].ID != halo_id: 
+            #make a new halo
             populated_halos += [Halo()]
-            populated_halos[-1].ID = halo_id
+            last_h = populated_halos[-1]
+            last_h.ID = halo_id
             
-            populated_halos[-1].vx += [halos['VX'][halo_index]]
-            populated_halos[-1].vy += [halos['VY'][halo_index]]
-            populated_halos[-1].vz += [halos['VZ'][halo_index]]
+            last_h.vx += [halos['VX'][halo_index]]
+            last_h.vy += [halos['VY'][halo_index]]
+            last_h.vz += [halos['VZ'][halo_index]]
 
-        populated_halos[-1].particle_list += [Particle.Particle(p['X'],p['Y'],p['Z'],p['VX'],p['VY'],p['VZ'])]
+        last_h.particle_list += [Particle.Particle(p['X'],p['Y'],p['Z'],\
+						   p['VX'],p['VY'],p['VZ'],\
+						   this_index=timestep, \
+						   num_timesteps=num_timesteps)]
 
     return populated_halos
 
