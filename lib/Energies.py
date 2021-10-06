@@ -12,7 +12,7 @@ def PEg(p, particle_field, timestep):
     for op in particle_field:
         r = np.sqrt((p.x[i]-op.x[i])**2 + (p.y[i]-op.y[i])**2 + (p.z[i]-op.z[i])**2)
         if r == 0: continue # skip self-field
-        PE += -G*particle_mass**2/r
+        PE += -G*particle_mass*op.mass/r
 
     return PE
 
