@@ -87,9 +87,9 @@ for p, ID in zip(particles,ids):
     p.y = normal(loc=0, scale=1.5, size=num_timesteps)
     p.z = normal(loc=0, scale=1.5, size=num_timesteps)
 
-    p.vx = normal(loc=0, scale=1.5, size=num_timesteps)
-    p.vy = normal(loc=0, scale=1.5, size=num_timesteps)
-    p.vz = normal(loc=0, scale=1.5, size=num_timesteps)
+    p.vx = normal(loc=0, scale=0.5, size=num_timesteps)
+    p.vy = normal(loc=0, scale=0.5, size=num_timesteps)
+    p.vz = normal(loc=0, scale=0.5, size=num_timesteps)
 
 base_p = "halos_snapshot_%i.hdf5.0.particles"
 p_files = [base_p%i for i in range(num_timesteps)]
