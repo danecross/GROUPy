@@ -17,7 +17,7 @@ h.vx = h.vy = h.vz = [0]
 
 
 PE = PEg(p_field[0], p_field, 0)
-assert(PE == -9.61838051997152e-35)
+assert(PE == -9.618380519971521e-35)
 
 #############
 ## test KE ##
