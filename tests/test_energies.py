@@ -15,7 +15,6 @@ h.vx = h.vy = h.vz = [0]
 ## test PEg ##
 ##############
 
-
 PE = PEg(p_field[0], p_field, 0)
 assert(PE == -9.618380519971521e-35)
 

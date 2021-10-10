@@ -100,6 +100,16 @@ def get_particle_mass(rs_path):
     return m
 
 
+def get_time(rs_path):
+
+    f = open(rs_path, 'r')
+    for line in f:
+        if "#a =" in line:
+            for n in line.split():
+                try: a = float(n)
+                except ValueError: continue
+
+    return a
 
 
 

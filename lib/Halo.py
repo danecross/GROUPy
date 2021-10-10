@@ -16,7 +16,7 @@ class Halo(object):
         backtrack = kwargs.get('backtrack', True)
         verbose = kwargs.get('verbose', False) 
 
-        self.halo_files = [] ; self.particle_files = []
+        self.halo_files = [] 
 
         self.mbps = []
         self.particle_list = [] ; self.particle_IDs = []
@@ -33,12 +33,14 @@ class Halo(object):
             tag_id = args[0] 
             self.halo_files = args[1]
             self.times_list = args[2]
-            if len(args)==4: self.particle_files = args[3]
-
+            
             self.tag_idx = first_idx
             self.get_desc_list(tag_id, self.halo_files, self.times_list, file_start=first_idx, verbose=verbose)
             if backtrack:
                 self.backtrack(tag_id, self.halo_files, self.times_list, file_start=first_idx)
+            if len(args)==4: 
+                particle_files = args[3]
+                self.populate_full_particles(particle_files)
 
         else:
             raise TypeError("Two options for initializing a Halo object: \n" +\
@@ -50,6 +52,14 @@ class Halo(object):
                             "\t\t index of file where the halo first appears (int, optional, default=0)\n"+\
                             "\t\t option to backtrack halo information from the tagging redshift (bool, optional, default=True)\n"+\
                             "\t\t flag for verbose output (bool, optional, default=False)\n"+\
+                            "\t 3. full constructor with particle population\n"+\
+                            "\t\t ID of the first halo appearance in the rockstar files (int),\n " +\
+                            "\t\t time-ordered list of rockstar files (list)\n " +\
+                            "\t\t list of times for each snapshot (t = 1/(1+z)) (list)\n " +\
+                            "\t\t array of particle path names ordered by time\n"+\
+                            "\t\t index of file where the halo first appears (int, optional, default=0)\n"+\
+                            "\t\t option to backtrack halo information from the tagging redshift (bool, optional, default=True)\n"+\
+                            "\t\t flag for verbose output (bool, optional, default=False)\n"+\
                             "len of args: %i, len of kwargs: %i"%(len(args), len(kwargs)))
             exit()
 
@@ -58,7 +68,7 @@ class Halo(object):
         # input checking	
         if timestep > len(self.times_list): raise IndexError("desired timestep > number of available timesteps")
         if len(self.particle_list) == 0 or self.particle_list[0].x[timestep] == -np.inf : 
-            self.populate_particle_list(timestep)
+            raise Exception("NoParticlesAvailable","before finding the most bound particle, you must load the particle data using populate_full_particles or populate_particle_list")
         if len(self.mbps) == 0: self.mbps = [-1]*len(self.times_list)
 
         # if already calculated, return saved value
@@ -73,14 +83,12 @@ class Halo(object):
         return MBP
         
 
-    def populate_particle_list(self, timestep):
+    def populate_particle_list(self, particle_file, timestep):
 	
-        if len(self.particle_files)==0: print("no particle files given; cannot make particle list") ; return
         if len(self.times_list)==0: print("Empty halo information; cannot make particle list") ; return
+        if self.ID == -1: raise Exception("InvalidHaloID","to read from particle table, must set the ID")
 
-        file = self.particle_files[timestep] 
-        p_table = get_particle_table(file)
-
+        p_table = get_particle_table(particle_file)
         mask = (p_table['PHALO']==self.ID)
         for tp in p_table[mask]:
             idx = np.where(self.particle_IDs==tp['ID'])[0]
@@ -88,12 +96,42 @@ class Halo(object):
                 p = self.particle_list[idx[0]]
             else: # a new particle
                 p = Particle.Particle(num_timesteps=len(self.times_list),\
-				this_index=timestep, mass=get_particle_mass(file))
+				this_index=timestep, mass=get_particle_mass(particle_file))
                 self.particle_IDs += [tp['ID']]
                 self.particle_list += [p]
 
             p.insert_at_timestep(tp['X'],tp['Y'],tp['Z'],tp['VX'],tp['VY'],tp['VZ'], timestep)
 				
+
+    def populate_full_particles(self, particles_list):
+
+        files_list = [self._get_p_names_list(p_name) for p_name in particles_list]
+
+        for files in files_list:
+            t0 = get_time(files[0])
+            t_idxs = np.where(t0==np.array(self.times_list))[0]
+            if len(t_idxs) == 0:
+                raise Exception("InvalidTimesList","file is at timestep a=%.2f, no match in times_list"%t0)
+            t_idx = t_idxs[0]
+            for f in files:
+                # check all files have same time 
+                t = get_time(f)
+                if t != t0: 
+                    raise Exception("InconsistentFiles","file %s has different a-value (time) than the first file")
+                
+                self.populate_particle_list(f, t_idx)
+
+
+    def _get_p_names_list(self, pfile_name):
+        
+        base = pfile_name+".%i.particles"
+        res = [base%i for i in range(0,1000) if os.path.exists(base%i)]
+    
+        if len(res) == 0: 
+            raise Exception("InvalidFileBase","could not find any particle files %s"%(base))
+
+        return res
+
 
     def get_desc_list(self, first_id, files, times, file_start=0, verbose=False): 
 
