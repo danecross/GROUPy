@@ -5,8 +5,6 @@ from astropy.io import ascii
 
 from Halo import *
 
-# TODO: merge this usage with the halo infrastructure for harvest
-
 def get_populated_halos(particle_paths, rs_path, timestep=0, num_timesteps=1):
     
     particles = get_particle_table(particle_paths)

@@ -75,17 +75,25 @@ class Halo(object):
         if self.mbps[timestep] != -1: return self.mbps[timestep]
 
         # else, calculate MBP
-        energies = [p.get_energy(timestep, self.particle_list, (self.vx, self.vy, self.vz)) for p in self.particle_list]
+        halo_v = (self.vx[timestep], self.vy[timestep], self.vz[timestep])
+        energies = [p.get_energy(timestep, self.particle_list, halo_v) for p in self.particle_list]
         mbp_idx = np.where((energies == np.min(energies)))[0][0] 
         MBP = self.particle_list[mbp_idx]
 
         self.mbps[timestep] = MBP
         return MBP
-        
+
+    def rank_particle_boundedness(self, timestep):
+
+        halo_v = (self.vx[timestep], self.vy[timestep], self.vz[timestep])
+        energies = [p.get_energy(timestep, self.particle_list, halo_v) for p in self.particle_list]
+        ranked_particles = [p for _,p in sorted(zip(energies, self.particle_list))]
+        for p, i in zip(ranked_particles, range(len(ranked_particles))):
+            p.bound_rank[timestep]=i
 
     def populate_particle_list(self, particle_file, timestep):
 	
-        if len(self.times_list)==0: print("Empty halo information; cannot make particle list") ; return
+        if len(self.times_list)==0: raise Exception("EmptyHaloException", "Empty halo information; cannot make particle list")
         if self.ID == -1: raise Exception("InvalidHaloID","to read from particle table, must set the ID")
 
         p_table = get_particle_table(particle_file)
@@ -242,7 +250,7 @@ class Halo(object):
 
         return distances
 
-    def save(self, name="halo.npy", particle_dir="halo/", full_save=True):
+    def save(self, name="halo.npy", particle_dir="halo/"):
         
         members = [attr for attr in dir(self) if not callable(getattr(self, attr)) \
 					     and not attr.startswith("__")\
