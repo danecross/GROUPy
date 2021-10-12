@@ -6,7 +6,7 @@ from Halo import *
 
 ## using the data from the tests..
 
-pd_base = "../../tests/test_data/halos_snapshot_%i.hdf5.0.particles"
+pd_base = "../../tests/test_data/halos_snapshot_%i.hdf5"
 particle_data = [pd_base%i for i in range(10)]
 
 rs_base = "../../tests/test_data/out_%i.list"
