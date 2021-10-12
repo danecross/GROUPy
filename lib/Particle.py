@@ -20,6 +20,7 @@ class Particle(object):
         self.y  = [-np.inf]*num_timesteps ; self.vy = [-np.inf]*num_timesteps
         self.z  = [-np.inf]*num_timesteps ; self.vz = [-np.inf]*num_timesteps
         self.energy = [-np.inf]*num_timesteps
+        self.bound_rank = [-1]*num_timesteps
 
         if len(args) == 6:
             i = this_idx
@@ -34,7 +35,8 @@ class Particle(object):
 
 
     def get_energy(self, timestep, particle_field, halo_v=(0,0,0)):
-       
+
+        if self.energy[timestep] > -np.inf: return self.energy[timestep]
         if self.mass == -np.inf: raise ValueError("must set particle mass before calculating energies") 
         K = KE(self, timestep, halo_v)
         P = PEg(self, particle_field, timestep) 
@@ -49,6 +51,11 @@ class Particle(object):
         p = {attr:getattr(self,attr) for attr in members}
         np.save(name, p, allow_pickle=True)
 
+
+    def __eq__(self, other):
+
+        if not isinstance(other, self.__class__): return False
+        return (self.id == other.id and self.id != -1 and other.id != -1)
 
 def load(name):
 

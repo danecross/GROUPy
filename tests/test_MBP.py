@@ -22,18 +22,30 @@ if os.path.exists(savedir):
     shutil.rmtree(savedir)
     os.mkdir(savedir)
 
-############################################
-## make halo and find most bound particle ##
-############################################
+###############
+## make halo ## 
+###############
 
 h = Halo(0, hfiles, times, pfiles, first_timestep=4, backtrack=False)
-h.get_mb_particle(6)
-
-h.save("halo_frommbp.npy", "test_output/MBP_save/")
 
 
+####################################
+## find most bound particle ranks ##
+####################################
 
+for i in range(len(times)):
+    h.rank_particle_boundedness(i)
 
+p = h.particle_list[0]
+assert(all(rank >= 0 for rank in p.bound_rank))
+
+##############################
+## find most bound particle ##
+##############################
+
+MBP = h.get_mb_particle(6)
+
+assert(all(rank >= 0 for rank in MBP.bound_rank))
 
 
 
