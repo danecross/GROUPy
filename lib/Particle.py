@@ -41,7 +41,7 @@ class Particle(object):
         K = KE(self, timestep, halo_v)
         P = PEg(self, particle_field, timestep) 
 
-        self.energy[timestep] += K+P
+        self.energy[timestep] = K+P
         return K+P
 
     def save(self, name="particle.npy"):
