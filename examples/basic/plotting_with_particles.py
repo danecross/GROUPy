@@ -33,7 +33,7 @@ output_dir = "plotting_output/"
 if not os.path.exists(output_dir):
     os.mkdir(output_dir)
 
-### mass as a function of time
+### energy as a function of time
 
 p = h.get_mb_particle(3)
 [p.get_energy(i, h.particle_list) for i in range(len(times))]
@@ -42,7 +42,7 @@ plt.plot(times, p.energy)
 plt.savefig(os.path.join(output_dir,"p_energy.png"))
 plt.cla()
 
-### radius as a function of time
+### boundedness as a function of time
 
 [h.rank_particle_boundedness(i) for i in range(len(times))]
 
