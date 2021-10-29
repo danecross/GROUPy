@@ -8,6 +8,8 @@ import Particle
 from Energies import *
 from Harvest import *
 
+import astropy
+
 class Halo(object):
 
     def __init__(self, *args, **kwargs): 
@@ -34,7 +36,7 @@ class Halo(object):
             self.halo_files = args[1]
             self.times_list = args[2]
             
-            self.tag_idx = first_idx
+            self.tag_idx = first_idx 
             self.get_desc_list(tag_id, self.halo_files, self.times_list, file_start=first_idx, verbose=verbose)
             if backtrack:
                 self.backtrack(tag_id, self.halo_files, self.times_list, file_start=first_idx)
@@ -151,7 +153,7 @@ class Halo(object):
         self.vx = np.array([-1]*(file_start)) ; self.vy = np.array([-1]*(file_start)) ; self.vz = np.array([-1]*(file_start))
 
         if self.ID == -1: self.ID = first_id
-        if verbose: print("\ttracking halo %i"%self.id)
+        if verbose: print("\ttracking halo %i"%self.ID)
         i = file_start ; last_id = first_id
         
         hf = open(files[0], 'r')
@@ -160,10 +162,18 @@ class Halo(object):
 
         for f,ti in zip(files[file_start:], times[file_start:]):
 
-            t = ascii.read(f, format='no_header', names=header, delimiter=" ")
+            try:
+                t = ascii.read(f, format='no_header', names=header, delimiter=" ")
+            except astropy.io.ascii.core.InconsistentTableError:
+                self.add_timestep(i, -1, -1, -1, -1, -1, -1, -1, -1, -1, ti)
+                continue
 
             # get row
             ri = np.where(t['ID']==last_id)[0]
+
+            if len(ri) == 0: 
+                self.add_timestep(i, -1, -1, -1, -1, -1, -1, -1, -1, -1, ti)
+                continue
 
             self.add_timestep(i, last_id, t['Mvir'][ri], t['Rvir'][ri], \
                                  t['X'][ri], t['Y'][ri], t['Z'][ri], \
@@ -171,11 +181,11 @@ class Halo(object):
             
             i += 1 ; last_id = t['DescID'][ri]
 
-            if verbose and (i-file_start)%50==0: print("\t\ttracked halo %i through %i screenshots "%(self.id,i))
+            if verbose and (i-file_start)%50==0: print("\t\ttracked halo %i through %i screenshots "%(self.ID,i))
 
             if last_id == -1: # the halo has no descendant (it disappeared) 
                 while i < len(files):
-                    self.add_timestep(i, -1, -1, -1, -1, -1, -1, -1, -1, -1, t)
+                    self.add_timestep(i, -1, -1, -1, -1, -1, -1, -1, -1, -1, ti)
                     i += 1
                 break
 
@@ -214,6 +224,7 @@ class Halo(object):
             self.vz      = np.append(self.vz     , vz)
             self.t       = np.append(self.t      , t)
         elif index < len(self.ids) and self.ids[index]==-1:
+            #print(index, mass)
             self.ids[index]	= ID
             self.mass[index]    = mass
             self.radius[index]  = radius
@@ -250,26 +261,27 @@ class Halo(object):
 
         return distances
 
-    def save(self, name="halo.npy", particle_dir="halo/"):
-        
+    # particle dir must exist before running save
+    def save(self, name="halo.npy", particle_dir=None):
+
         members = [attr for attr in dir(self) if not callable(getattr(self, attr)) \
 					     and not attr.startswith("__")\
 					     and not attr=="particle_list"]
 
         h = {attr:getattr(self,attr) for attr in members}
-	
-        if len(self.particle_list) == 0: 
+
+        if particle_dir is None:
             np.save(name, h, allow_pickle=True)
-            return 
-
-        if not os.path.exists(particle_dir):
-            os.mkdir(particle_dir)
-
+            return
+        else:
+            fname = os.path.join(particle_dir,name)
+            if not os.path.exists(particle_dir):
+                os.mkdir(particle_dir)
+            np.save(fname, h, allow_pickle=True)
+	
         for p,i in zip(self.particle_list, range(len(self.particle_list))):
             p.save(os.path.join(particle_dir,"p_%05i.npy"%i))
-
-        np.save(os.path.join(particle_dir,name), h, allow_pickle=True)
-
+    
     def __str__(self):
         num_ss = len([x for x in self.ids if x != -1])
         return "Halo %i evolution with %i timesteps"%(self.ID, num_ss)
