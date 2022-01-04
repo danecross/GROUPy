@@ -124,7 +124,7 @@ class Halo(object):
                 self.particle_IDs += [tp['ID']]
                 self.particle_list += [p]; i+=1
 
-            p.insert_at_timestep(tp['X'],tp['Y'],tp['Z'],tp['VX'],tp['VY'],tp['VZ'], timestep, parent_halo=self.id)
+            p.insert_at_timestep(tp['X'],tp['Y'],tp['Z'],tp['VX'],tp['VY'],tp['VZ'], timestep, parent_halo=self.ID)
 
 
     def populate_full_particles(self, particles_list, find_all_files=True):

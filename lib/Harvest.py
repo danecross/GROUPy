@@ -4,6 +4,7 @@ from astropy.table import Table
 from astropy.io import ascii
 
 from Halo import *
+from Particle import *
 
 def get_populated_halos(particle_paths, rs_path, timestep=0, num_timesteps=1):
     
@@ -28,7 +29,7 @@ def get_populated_halos(particle_paths, rs_path, timestep=0, num_timesteps=1):
             last_h.vy += [halos['VY'][halo_index]]
             last_h.vz += [halos['VZ'][halo_index]]
 
-        last_h.particle_list += [Particle.Particle(p['X'],p['Y'],p['Z'],\
+        last_h.particle_list += [Particle(p['X'],p['Y'],p['Z'],\
 						   p['VX'],p['VY'],p['VZ'],\
 						   this_index=timestep, \
 						   num_timesteps=num_timesteps)]

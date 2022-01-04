@@ -22,7 +22,7 @@ class Particle(object):
         self.energy = [-np.inf]*num_timesteps
         self.bound_rank = [-1]*num_timesteps
 
-        member_of = [-1]*num_timesteps
+        self.member_of = [-1]*num_timesteps
 
         if len(args) == 6:
             i = this_idx
@@ -36,7 +36,7 @@ class Particle(object):
         self.x[timestep]  = x  ; self.y[timestep]  = y  ; self.z[timestep]  = z
         self.vx[timestep] = vx ; self.vy[timestep] = vy ; self.vz[timestep] = vz
 
-        member_of[timestep] = parent_halo
+        self.member_of[timestep] = parent_halo
 
 
     def get_energy(self, timestep, particle_field, halo_v=(0,0,0)):
