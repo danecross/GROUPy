@@ -49,7 +49,7 @@ assert(type(halos[0])==Halo)
 h = halos[0]
 h.save("halo0_sp.npy", "test_output/io")
 
-h2 = load("halo0_sp.npy", "test_output/io")
+h2 = load_halo("halo0_sp.npy", "test_output/io")
 
 assert(h==h2)
 

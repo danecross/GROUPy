@@ -3,7 +3,7 @@ import os
 import numpy as np
 from astropy.io import ascii
 
-from Halo import Halo, load
+from Halo import Halo, load_halo
 
 #################################
 ## test empty halo constructor ##
@@ -77,7 +77,7 @@ if not os.path.exists(test_dir): os.mkdir(test_dir)
 halo.save(name="halo%i.npy"%halo.ID, particle_dir=test_dir+"halo_%i"%halo.ID)
 assert(os.path.exists(test_dir+"halo_0/halo%i.npy"%halo.ID))
 
-halo2 = load(test_dir+"halo_0/halo%i.npy"%0)
+halo2 = load_halo(test_dir+"halo_0/halo%i.npy"%0)
 
 assert(halo==halo2)
 

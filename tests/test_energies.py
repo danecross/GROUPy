@@ -1,12 +1,12 @@
 
-from Particle import Particle, load
+from Particle import *
 from Energies import *
 from Halo import *
 
 m = 4.61528e+06
 
 # create test "field"
-p_field = [Particle.Particle(0,0,0,0,0,0,mass=m), Particle.Particle(1,0,0,1,0,0,mass=m)]
+p_field = [Particle(0,0,0,0,0,0,mass=m), Particle(1,0,0,1,0,0,mass=m)]
 
 h = Halo()
 h.vx = h.vy = h.vz = [0]
