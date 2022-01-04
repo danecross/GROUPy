@@ -4,7 +4,7 @@ from astropy.io import ascii
 from astropy.table import Table
 import numpy as np
 
-import Particle 
+from Particle import *
 from Energies import *
 from Harvest import *
 
@@ -69,7 +69,7 @@ class Halo(object):
 
         # input checking	
         if timestep > len(self.times_list): raise IndexError("desired timestep > number of available timesteps")
-        if len(self.particle_list) == 0 or self.particle_list[0].x[timestep] == -np.inf : 
+        if len(self.particle_list) == 0:
             raise Exception("NoParticlesAvailable","before finding the most bound particle, you must load the particle data using populate_full_particles or populate_particle_list")
         if len(self.mbps) == 0: self.mbps = [-1]*len(self.times_list)
 
@@ -79,7 +79,8 @@ class Halo(object):
         # else, calculate MBP
         halo_v = (self.vx[timestep], self.vy[timestep], self.vz[timestep])
         energies = [p.get_energy(timestep, self.particle_list, halo_v) for p in self.particle_list]
-        mbp_idx = np.where((energies == np.min(energies)))[0][0] 
+        energies = [e if e != np.nan else -np.inf for e in energies]
+        mbp_idx = np.where(energies == np.min(energies))[0][0] 
         MBP = self.particle_list[mbp_idx]
 
         self.mbps[timestep] = MBP
@@ -87,48 +88,62 @@ class Halo(object):
 
     def rank_particle_boundedness(self, timestep):
 
+        if len(self.particle_list) == 0 : return
         halo_v = (self.vx[timestep], self.vy[timestep], self.vz[timestep])
         energies = [p.get_energy(timestep, self.particle_list, halo_v) for p in self.particle_list]
         ranked_particles = [p for _,p in sorted(zip(energies, self.particle_list))]
+        
+        if len(self.mbps) == 0: self.mbps = [-1]*len(self.times_list)
+        self.mbps[timestep] = ranked_particles[0]
+
         for p, i in zip(ranked_particles, range(len(ranked_particles))):
             p.bound_rank[timestep]=i
 
-    def populate_particle_list(self, particle_file, timestep):
-	
+    def populate_particle_list(self, particle_file, timestep=None):
+
         if len(self.times_list)==0: raise Exception("EmptyHaloException", "Empty halo information; cannot make particle list")
         if self.ID == -1: raise Exception("InvalidHaloID","to read from particle table, must set the ID")
+        if timestep is not None and timestep > len(self.ids): 
+            raise Exception("InvalidTimestepIntertion", "attempting to insert particles beyond available timesteps")
+        elif timestep is None:
+            t0 = get_time(particle_file) 
+            timestep =  np.where(np.abs(t0-np.array(self.times_list))<2e-5)[0][0]
 
-        p_table = get_particle_table(particle_file)
-        mask = (p_table['PHALO']==self.ID)
-        for tp in p_table[mask]:
+        p_table = get_short_particle_table(particle_file, self.ids[timestep]) 
+        if len(p_table)==0: return
+
+        i = 0
+        for tp in p_table:
+            if tp['PHALO'] != self.ids[timestep]: continue
             idx = np.where(self.particle_IDs==tp['ID'])[0]
             if len(idx) > 0: # particle is already in the list
-                p = self.particle_list[idx[0]]
+                p = self.particle_list[idx[0]] 
             else: # a new particle
-                p = Particle.Particle(num_timesteps=len(self.times_list),\
+                p = Particle(num_timesteps=len(self.times_list), id=tp['ID'],\
 				this_index=timestep, mass=get_particle_mass(particle_file))
                 self.particle_IDs += [tp['ID']]
-                self.particle_list += [p]
+                self.particle_list += [p]; i+=1
 
-            p.insert_at_timestep(tp['X'],tp['Y'],tp['Z'],tp['VX'],tp['VY'],tp['VZ'], timestep)
-				
+            p.insert_at_timestep(tp['X'],tp['Y'],tp['Z'],tp['VX'],tp['VY'],tp['VZ'], timestep, parent_halo=self.id)
 
-    def populate_full_particles(self, particles_list):
 
-        files_list = [self._get_p_names_list(p_name) for p_name in particles_list]
+    def populate_full_particles(self, particles_list, find_all_files=True):
+
+        if find_all_files: files_list = [self._get_p_names_list(p_name) for p_name in particles_list]
+        else: files_list = [[f,] for f in particles_list]
 
         for files in files_list:
             t0 = get_time(files[0])
-            t_idxs = np.where(t0==np.array(self.times_list))[0]
+            t_idxs = np.where(np.abs(t0-np.array(self.times_list))<2e-5)[0]
             if len(t_idxs) == 0:
-                raise Exception("InvalidTimesList","file is at timestep a=%.2f, no match in times_list"%t0)
+                raise Exception("InvalidTimesList","file is at timestep a=%f, no match in times_list. file name: %s"%(t0,files[0]))
             t_idx = t_idxs[0]
             for f in files:
                 # check all files have same time 
                 t = get_time(f)
                 if t != t0: 
                     raise Exception("InconsistentFiles","file %s has different a-value (time) than the first file")
-                
+	
                 self.populate_particle_list(f, t_idx)
 
 
@@ -149,8 +164,14 @@ class Halo(object):
         self.mass = np.array([-1]*(file_start))
         self.radius = np.array([-1]*(file_start))
         self.t = np.array([-1]*(file_start))
-        self.x = np.array([-1]*(file_start))  ; self.y = np.array([-1]*(file_start))  ; self.z = np.array([-1]*(file_start))
-        self.vx = np.array([-1]*(file_start)) ; self.vy = np.array([-1]*(file_start)) ; self.vz = np.array([-1]*(file_start))
+
+        self.x = np.array([-1]*(file_start))
+        self.y = np.array([-1]*(file_start))
+        self.z = np.array([-1]*(file_start))
+        
+        self.vx = np.array([-1]*(file_start)) 
+        self.vy = np.array([-1]*(file_start)) 
+        self.vz = np.array([-1]*(file_start))
 
         if self.ID == -1: self.ID = first_id
         if verbose: print("\ttracking halo %i"%self.ID)
@@ -181,7 +202,8 @@ class Halo(object):
             
             i += 1 ; last_id = t['DescID'][ri]
 
-            if verbose and (i-file_start)%50==0: print("\t\ttracked halo %i through %i screenshots "%(self.ID,i))
+            if verbose and (i-file_start)%50==0: 
+                print("\t\ttracked halo %i through %i screenshots "%(self.ID,i))
 
             if last_id == -1: # the halo has no descendant (it disappeared) 
                 while i < len(files):
@@ -224,7 +246,6 @@ class Halo(object):
             self.vz      = np.append(self.vz     , vz)
             self.t       = np.append(self.t      , t)
         elif index < len(self.ids) and self.ids[index]==-1:
-            #print(index, mass)
             self.ids[index]	= ID
             self.mass[index]    = mass
             self.radius[index]  = radius
@@ -241,7 +262,9 @@ class Halo(object):
         else:
             raise ValueError("attempting to add a timestep which has no previous timestep")
 
-    def get_distances_from(self, x0, y0, z0):
+    def get_distances_from(self, x0=None, y0=None, z0=None, other=None):
+
+        if other is not None: self._get_distances_from(other)
 
         x = np.array([xi-x0 for xi in self.x if xi != -1])
         y = np.array([yi-y0 for yi in self.y if yi != -1])
@@ -251,7 +274,7 @@ class Halo(object):
 
         return distances
 
-    def get_distances_from(self, other):
+    def _get_distances_from(self, other):
 
         x = np.array([xi-x0 for xi, x0 in zip(self.x, other.x) if xi != -1 and x0 != -1])
         y = np.array([yi-y0 for yi, y0 in zip(self.y, other.y) if yi != -1 and y0 != -1])
@@ -273,14 +296,14 @@ class Halo(object):
         if particle_dir is None:
             np.save(name, h, allow_pickle=True)
             return
-        else:
-            fname = os.path.join(particle_dir,name)
-            if not os.path.exists(particle_dir):
-                os.mkdir(particle_dir)
-            np.save(fname, h, allow_pickle=True)
-	
+        
+        fname = os.path.join(particle_dir,name)
+        if not os.path.exists(particle_dir):
+            os.mkdir(particle_dir)
+        np.save(fname, h, allow_pickle=True)
+
         for p,i in zip(self.particle_list, range(len(self.particle_list))):
-            p.save(os.path.join(particle_dir,"p_%05i.npy"%i))
+            p.save(os.path.join(particle_dir,"p_%07i.npy"%i))
     
     def __str__(self):
         num_ss = len([x for x in self.ids if x != -1])
@@ -297,7 +320,7 @@ class Halo(object):
 #   name: name of the file that contains the saved halo
 # output; 
 #   halo object that was saved
-def load(name, particle_directory=None):
+def load_halo(name, particle_directory=None):
 
     h = Halo()
     
@@ -307,14 +330,19 @@ def load(name, particle_directory=None):
     h_dict = np.load(fname, allow_pickle=True)
 
     for attr in h_dict.item().keys():
-        if attr == "particle_list": continue
+        if attr == "particle_list" or attr == "particle_IDs": continue
         setattr(h,attr, h_dict.item()[attr])
 
     if particle_directory is None: return h
     
     for fname in os.listdir(particle_directory):
-        p = Particle.load(os.path.join(particle_directory,fname))
+
+        if fname[:2] != "p_": continue
+
+        p = load_particle(os.path.join(particle_directory,fname))
+
         h.particle_list += [p]
+        h.particle_IDs += [p.id]
 
     return h
 
