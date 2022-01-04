@@ -13,7 +13,8 @@ def get_populated_halos(particle_paths, rs_path, timestep=0, num_timesteps=1):
     populated_halos = [] ; id_list = [] ; halo_index = 0
     for p in particles:
         halo_id = p['PHALO']
-        while halo_index<len(halos) and halos['ID'][halo_index] != halo_id: halo_index += 1
+        while halo_index<len(halos) and halos['ID'][halo_index] != halo_id: 
+            halo_index += 1
         if halo_index==len(halos): break
 
         #check if we're putting the particle into the right halo
@@ -53,10 +54,10 @@ def get_particle_table(file_paths):
         for line in f:
             if line[0] == '#': continue
             data = [float(xi) for xi in line.split()]
-            if len(data) < 10: continue
+            if len(data) < 9: continue
             x  += [data[0]] ; y  += [data[1]] ; z  += [data[2]]
             vx += [data[3]] ; vy += [data[4]] ; vz += [data[5]]
-            IDs += [int(data[6])] ; pHalo += [int(data[9])]
+            IDs += [int(data[6])] ; pHalo += [int(data[-1])]
         f.close()
 
     t = Table()
@@ -67,8 +68,43 @@ def get_particle_table(file_paths):
     try:
         return t.group_by('PHALO')
     except IndexError:
-        print("WARNING: particle table is empty!")
         return t
+
+# get and save the shortened particle table for one halo
+# input: 
+#   file_paths: list of paths to the particle file
+#   halo_num: halo number to extract
+#   save_path: path to save the file
+# output: 
+#   no return value, but saves file to save_path
+
+def get_short_particle_table(file_paths, halo_num):
+
+    x  = [] ; y  = [] ; z  = []
+    vx = [] ; vy = [] ; vz = []
+    IDs = [] ; pHalo = []
+
+    if type(file_paths) == str: file_paths = [file_paths]
+    for path in file_paths:
+        f = open(path,'r')
+        for line in f:
+            if line[0] == '#': continue
+            data = [float(xi) for xi in line.split()]
+            #if len(data) < 9: continue
+            if data[-1] != halo_num: continue
+            x  += [data[0]] ; y  += [data[1]] ; z  += [data[2]]
+            vx += [data[3]] ; vy += [data[4]] ; vz += [data[5]]
+            IDs += [int(data[6])] ; pHalo += [int(data[-1])]
+        f.close()
+
+    t = Table()
+    t['ID'] = IDs ; t['PHALO'] = pHalo
+    t['X']  = x  ; t['Y']  = y  ; t['Z']  = z
+    t['VX'] = vx ; t['VY'] = vy ; t['VZ'] = vz
+
+    return t
+
+
 
 # gets the table of halo information from rockstar outputs
 # input:
@@ -90,7 +126,7 @@ def get_particle_mass(rs_path):
 
     hf = open(rs_path, 'r')
     for line in hf:
-        if line[:15] == "#Particle mass:":
+        if "Particle mass" in line[:15]:
             for n in line.split():
                 try: m = float(n)
                 except ValueError: continue
@@ -98,11 +134,13 @@ def get_particle_mass(rs_path):
     return m
 
 
+# returns None if the line dne in the file
 def get_time(rs_path):
 
     f = open(rs_path, 'r')
+    a = None
     for line in f:
-        if "#a =" in line:
+        if "a =" in line:
             for n in line.split():
                 try: a = float(n)
                 except ValueError: continue
