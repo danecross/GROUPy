@@ -148,17 +148,20 @@ def get_time(rs_path):
 
     return a
 
+import ast
 
+def get_particle_bounds(rs_path):
 
+    hf = open(rs_path, 'r')
+    for line in hf:
+        if 'Bounds' in line: 
+            bounds_line = line
+            break
 
+    lower_bound, upper_bound = [s.strip() for s in bounds_line.split(':')[1].strip().split('-')]
 
+    lower_bound = tuple([float(n) for n in ast.literal_eval(lower_bound)])
+    upper_bound = tuple([float(n) for n in ast.literal_eval(upper_bound)])
 
-
-
-
-
-
-
-
-
+    return lower_bound, upper_bound
 
