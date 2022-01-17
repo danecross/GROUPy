@@ -116,6 +116,14 @@ def get_halo_table(rs_path):
 
     hf = open(rs_path, 'r')
     header = hf.readline()[1:].split()
+
+    has_data = False
+    for line in hf:
+        if line[0] != '#': 
+            has_data = True
+            break
+    if not has_data: return Table(names=header)
+
     hf.close()
 
     for i in range(len(header)): header[i]=header[i].upper()
