@@ -116,6 +116,7 @@ def get_halo_table(rs_path):
 
     hf = open(rs_path, 'r')
     header = hf.readline()[1:].split()
+    for i in range(len(header)): header[i]=header[i].upper()
 
     has_data = False
     for line in hf:
@@ -126,7 +127,6 @@ def get_halo_table(rs_path):
 
     hf.close()
 
-    for i in range(len(header)): header[i]=header[i].upper()
     t = ascii.read(rs_path, format='no_header', names=header, delimiter=" ")
     t.sort('ID')
     return t
