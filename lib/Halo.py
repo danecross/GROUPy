@@ -74,16 +74,19 @@ class Halo(object):
         if len(self.mbps) == 0: self.mbps = [-1]*len(self.times_list)
 
         # if already calculated, return saved value
-        if self.mbps[timestep] != -1: return self.mbps[timestep]
+        if self.mbps[timestep] != -1: 
+            pID = self.mbps[timestep]
+            idx = np.where(np.array(self.particle_IDs) == pID)[0][0]
+            return self.particle_list[idx]
 
         # else, calculate MBP
         halo_v = (self.vx[timestep], self.vy[timestep], self.vz[timestep])
         energies = [p.get_energy(timestep, self.particle_list, halo_v) for p in self.particle_list]
-        energies = [e if e != np.nan else -np.inf for e in energies]
+        energies = [e if e != np.nan else np.inf for e in energies]
         mbp_idx = np.where(energies == np.min(energies))[0][0] 
         MBP = self.particle_list[mbp_idx]
 
-        self.mbps[timestep] = MBP
+        self.mbps[timestep] = MBP.id
         return MBP
 
     def rank_particle_boundedness(self, timestep):
@@ -94,7 +97,7 @@ class Halo(object):
         ranked_particles = [p for _,p in sorted(zip(energies, self.particle_list))]
         
         if len(self.mbps) == 0: self.mbps = [-1]*len(self.times_list)
-        self.mbps[timestep] = ranked_particles[0]
+        self.mbps[timestep] = ranked_particles[0].id
 
         for p, i in zip(ranked_particles, range(len(ranked_particles))):
             p.bound_rank[timestep]=i
