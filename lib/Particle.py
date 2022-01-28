@@ -14,7 +14,7 @@ class Particle(object):
         self.id = kwargs.get('id',-1)
 
         if num_timesteps < 1: raise Exception("negative timesteps","number of timesteps must be >=1")
-        elif this_idx > num_timesteps:
+        elif this_idx >= num_timesteps:
             raise Exception("this_index > num_timesteps", "insertion index is beyond the number of timesteps")
 
         self.x  = [-np.inf]*num_timesteps ; self.vx = [-np.inf]*num_timesteps

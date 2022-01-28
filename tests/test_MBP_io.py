@@ -8,14 +8,38 @@ out_path = "test_data/"
 rs = [out_path+"out_%i.list"%i for i in range(10)]
 particles = [out_path+"halos_snapshot_%i.hdf5.0.particles"%i for i in range(10)]
 
-#################################
-## populate particle directory ##
-#################################
+pdir = os.path.join("test_output", "particles")
+num_timesteps = 10
+pfile_base_stripped = "test_data/halos_snapshot_%i.hdf5"
+all_pfiles_stripped = [pfile_base_stripped%i for i in range(num_timesteps)]
+all_pfiles = [os.path.join(out_path, f) for f in os.listdir("test_data") if f[:10]=='halos_snap']
+all_pfiles.sort()
 
-pdir = "test_output/particles/"
-if not os.path.exists(pdir): os.mkdir(pdir)
+f = open(out_path+"output_snapshot_times.txt", 'r')
+times_list = [float(t) for t in f]
 
-harvest_particles(particles[4], 4, 10, pdir)
+############################
+## test harvest_particles ##
+############################
+
+for f in os.listdir(pdir):
+    pf = os.path.join(pdir, f)
+    os.remove(pf)
+
+harvest_particles_by_timestep(all_pfiles[:2], 0, num_timesteps, pdir)
+
+assert(len(os.listdir(pdir)) > 0)
+
+for f in os.listdir(pdir):
+    pf = os.path.join(pdir, f)
+    os.remove(pf)
+
+harvest_particles(all_pfiles, times_list, pdir)
+
+assert(len(os.listdir(pdir)) > 0)
+
+p = load_particle(os.path.join(pdir, "p_143.npy"))
+assert((np.array(p.x)>-np.inf).all())
 
 
 ##############################

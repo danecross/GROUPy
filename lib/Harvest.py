@@ -144,9 +144,9 @@ def get_particle_bounds(rs_path):
 
 
 
-def harvest_particles(pfiles, timestep, num_timesteps, pdir):
+def harvest_particles_by_timestep(pfiles, timestep, num_timesteps, pdir):
 
-    existing_pids = []
+    existing_pids = [int(f[2:-4]) for f in os.listdir(pdir) if f[:2]=='p_']
     if type(pfiles)==str: pfiles = [pfiles]
     for f in pfiles:
         ptable = get_particle_table(f)
@@ -169,6 +169,13 @@ def harvest_particles(pfiles, timestep, num_timesteps, pdir):
             part.save(pdir=pdir)
 
 
+
+def harvest_particles(pfiles, times_list, pdir):
+    
+    for f in pfiles:
+        t = get_time(f)
+        idx = np.where(abs(np.array(times_list)-t) < 2e-5)[0][0]
+        harvest_particles_by_timestep(f, idx, len(times_list), pdir)
 
 
 
