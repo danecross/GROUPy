@@ -74,10 +74,10 @@ for x in p.x:
 test_dir = "test_output/"
 if not os.path.exists(test_dir): os.mkdir(test_dir)
 
-halo.save(name="halo%i.npy"%halo.ID, particle_dir=test_dir+"halo_%i"%halo.ID)
-assert(os.path.exists(test_dir+"halo_0/halo%i.npy"%halo.ID))
+halo.save(test_dir+"halo%i.npy"%halo.ID)
+assert(os.path.exists(test_dir+"halo%i.npy"%halo.ID))
 
-halo2 = load_halo(test_dir+"halo_0/halo%i.npy"%0)
+halo2 = load_halo(test_dir+"halo%i.npy"%0)
 
 assert(halo==halo2)
 

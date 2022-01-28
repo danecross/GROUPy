@@ -1,4 +1,5 @@
 
+import os
 import numpy as np
 
 from Energies import *
@@ -22,13 +23,14 @@ class Particle(object):
         self.energy = [-np.inf]*num_timesteps
         self.bound_rank = [-1]*num_timesteps
 
-        self.member_of = [-1]*num_timesteps
+        self.parent_ids = [-1]*num_timesteps
 
         if len(args) == 6:
             i = this_idx
             self.x[i]  = args[0] ; self.y[i]  = args[1] ; self.z[i]  = args[2]
             self.vx[i] = args[3] ; self.vy[i] = args[4] ; self.vz[i] = args[5]
-       
+      
+            self.parent_ids[i] = kwargs.get('parent_halo', -1) 
 
     def insert_at_timestep(self, x, y, z, vx, vy, vz, timestep, parent_halo=-1):
 
@@ -36,7 +38,7 @@ class Particle(object):
         self.x[timestep]  = x  ; self.y[timestep]  = y  ; self.z[timestep]  = z
         self.vx[timestep] = vx ; self.vy[timestep] = vy ; self.vz[timestep] = vz
 
-        self.member_of[timestep] = parent_halo
+        self.parent_ids[timestep] = parent_halo
 
 
     def get_energy(self, timestep, particle_field, halo_v=(0,0,0)):
@@ -49,8 +51,10 @@ class Particle(object):
         self.energy[timestep] = K+P
         return K+P
 
-    def save(self, name="particle.npy"):
+    # pdir MUST exist
+    def save(self, pdir="./"):
 
+        name = os.path.join(pdir, "p_%i.npy"%self.id)
         members = [attr for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")]
 
         p = {attr:getattr(self,attr) for attr in members}
@@ -75,7 +79,6 @@ def load_particle(name):
         setattr(p,attr, p_dict.item()[attr])
 
     return p
-
 
 
 

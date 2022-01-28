@@ -63,7 +63,6 @@ class Halo(object):
                             "\t\t option to backtrack halo information from the tagging redshift (bool, optional, default=True)\n"+\
                             "\t\t flag for verbose output (bool, optional, default=False)\n"+\
                             "len of args: %i, len of kwargs: %i"%(len(args), len(kwargs)))
-            exit()
 
     def get_mb_particle(self, timestep):
 
@@ -160,6 +159,17 @@ class Halo(object):
 
         return res
 
+    def load_particle(self, pid, pdir=None):
+    
+        p_file = os.path.join(pdir, "p_%i.npy"%pid)
+        if not os.path.exists(p_file): raise FileNotFoundError("file %s does not exist"%p_file)
+        
+        p = load_particle(p_file) ; is_parent = False
+        for ID, pid in zip(self.ids, p.parent_ids): 
+            if int(ID) == int(pid): is_parent=True
+        if not is_parent: raise Exception("InvalidParticlePlacing", "particle %i is never apart of halo %i"%(p.id, self.ID))
+
+        self.particle_list += [p]
 
     def get_desc_list(self, first_id, files, times, file_start=0, verbose=False): 
 
@@ -288,7 +298,7 @@ class Halo(object):
         return distances
 
     # particle dir must exist before running save
-    def save(self, name="halo.npy", particle_dir=None):
+    def save(self, name="halo.npy"):
 
         members = [attr for attr in dir(self) if not callable(getattr(self, attr)) \
 					     and not attr.startswith("__")\
@@ -296,18 +306,8 @@ class Halo(object):
 
         h = {attr:getattr(self,attr) for attr in members}
 
-        if particle_dir is None:
-            np.save(name, h, allow_pickle=True)
-            return
-        
-        fname = os.path.join(particle_dir,name)
-        if not os.path.exists(particle_dir):
-            os.mkdir(particle_dir)
-        np.save(fname, h, allow_pickle=True)
-
-        for p,i in zip(self.particle_list, range(len(self.particle_list))):
-            p.save(os.path.join(particle_dir,"p_%07i.npy"%i))
-    
+        np.save(name, h, allow_pickle=True)
+ 
     def __str__(self):
         num_ss = len([x for x in self.ids if x != -1])
         return "Halo %i evolution with %i timesteps"%(self.ID, num_ss)
@@ -322,30 +322,22 @@ class Halo(object):
 # input:
 #   name: name of the file that contains the saved halo
 # output; 
-#   halo object that was saved
+#   halo object loaded from given file
 def load_halo(name, particle_directory=None):
 
     h = Halo()
-    
-    if particle_directory is not None: fname = os.path.join(particle_directory, name)
-    else: fname = name
-    
-    h_dict = np.load(fname, allow_pickle=True)
+    h_dict = np.load(name, allow_pickle=True)
 
     for attr in h_dict.item().keys():
-        if attr == "particle_list" or attr == "particle_IDs": continue
+        if attr == "particle_list": continue
         setattr(h,attr, h_dict.item()[attr])
 
     if particle_directory is None: return h
+    if len(h.particle_IDs) == 0: 
+        raise Exception("NoParticlesFound", "halo's list of member particle IDs is empty")
     
-    for fname in os.listdir(particle_directory):
-
-        if fname[:2] != "p_": continue
-
-        p = load_particle(os.path.join(particle_directory,fname))
-
-        h.particle_list += [p]
-        h.particle_IDs += [p.id]
+    for pid in h.particle_IDs:
+        h.load_particle(pid, pdir=particle_directory)
 
     return h
 

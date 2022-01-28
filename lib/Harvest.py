@@ -3,38 +3,7 @@ import numpy as np
 from astropy.table import Table 
 from astropy.io import ascii
 
-from Halo import *
 from Particle import *
-
-def get_populated_halos(particle_paths, rs_path, timestep=0, num_timesteps=1):
-    
-    particles = get_particle_table(particle_paths)
-    halos = get_halo_table(rs_path)
-
-    populated_halos = [] ; id_list = [] ; halo_index = 0
-    for p in particles:
-        halo_id = p['PHALO']
-        while halo_index<len(halos) and halos['ID'][halo_index] != halo_id: 
-            halo_index += 1
-        if halo_index==len(halos): break
-
-        #check if we're putting the particle into the right halo
-        if len(populated_halos)==0 or populated_halos[-1].ID != halo_id: 
-            #make a new halo
-            populated_halos += [Halo()]
-            last_h = populated_halos[-1]
-            last_h.ID = halo_id
-            
-            last_h.vx += [halos['VX'][halo_index]]
-            last_h.vy += [halos['VY'][halo_index]]
-            last_h.vz += [halos['VZ'][halo_index]]
-
-        last_h.particle_list += [Particle(p['X'],p['Y'],p['Z'],\
-						   p['VX'],p['VY'],p['VZ'],\
-						   this_index=timestep, \
-						   num_timesteps=num_timesteps)]
-
-    return populated_halos
 
 
 # gets the particle table from the rockstar outputs
@@ -172,4 +141,48 @@ def get_particle_bounds(rs_path):
     upper_bound = tuple([float(n) for n in ast.literal_eval(upper_bound)])
 
     return lower_bound, upper_bound
+
+
+
+def harvest_particles(pfiles, timestep, num_timesteps, pdir):
+
+    existing_pids = []
+    if type(pfiles)==str: pfiles = [pfiles]
+    for f in pfiles:
+        ptable = get_particle_table(f)
+
+        for p in ptable:
+            if p['ID'] in existing_pids:
+                pfile = os.path.join(pdir, "p_%i.npy"%p['ID'])
+                part = load_particle(pfile)
+                part.insert_at_timestep(p['X'],p['Y'],p['Z'],\
+                                        p['VX'],p['VY'],p['VZ'],\
+                                        timestep, parent_halo=p['PHALO'])
+            else:
+                part = Particle(p['X'],p['Y'],p['Z'],\
+                             p['VX'],p['VY'],p['VZ'],\
+                             parent_halo=p['PHALO'], this_index=timestep, \
+                             num_timesteps=num_timesteps, id=p['ID'])
+
+                existing_pids += [part.id]
+
+            part.save(pdir=pdir)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
