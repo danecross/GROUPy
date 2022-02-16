@@ -136,7 +136,7 @@ for t in times_list:
 ## write consistent-trees test data ##
 ######################################
 
-preamble = "#ID DescID Mvir Rvir X Y Z VX VY VZ PID UPID\n\
+preamble = "#ID DescID Mvir Rvir X Y Z VX VY VZ PID UPID Original_ID\n\
 #Units: Masses in Msun / h\n\
 #Units: Positions in Mpc / h (comoving)\n\
 #Units: Velocities in km / s (physical)\n\
@@ -155,8 +155,10 @@ VY  = normal(loc=0, scale=1, size=num_timesteps)
 VZ = normal(loc=0, scale=1, size=num_timesteps)
 PID = [0 for i in range(num_timesteps)]
 UPID = [0 for _ in range(num_timesteps)]
+OID = [3 for _ in range(num_timesteps)]
 
 ID_2 = [1]*num_timesteps
+OID_2 = [4 for _ in range(num_timesteps)]
 
 base_rs = "really_consistent_%i.list"
 rs_files = [base_rs%i for i in range(num_timesteps)]
@@ -168,13 +170,13 @@ for fn, i in zip(rs_files,range(num_timesteps)):
     f.write(preamble)
 
     line = [ID[i], ID[i], Mvir[i], Rvir[i], \
-            X[i], Y[i], Z[i], VX[i], VY[i], VZ[i], PID[i], UPID[i]]
+            X[i], Y[i], Z[i], VX[i], VY[i], VZ[i], PID[i], UPID[i], OID[i]]
     line = [str(l) for l in line]
 
     f.write(" ".join(line)+'\n')
 
     line = [ID_2[i], ID_2[i], Mvir[i], Rvir[i], \
-            X[i], Y[i], Z[i], VX[i], VY[i], VZ[i], ID[i], UPID[i]]
+            X[i], Y[i], Z[i], VX[i], VY[i], VZ[i], ID[i], UPID[i], OID_2[i]]
     line = [str(l) for l in line]
 
     f.write(" ".join(line))

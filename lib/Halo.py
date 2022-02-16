@@ -33,7 +33,7 @@ class Halo(object):
             self.vx = [] ; self.vy = [] ; self.vz = [] 
 
             if is_consistent:
-                self.UPIDs = [] ; self.PIDs = []
+                self.UPIDs = [] ; self.PIDs = [] ; self.OIDs = []
 
         elif len(args) >= 3:
 
@@ -220,6 +220,7 @@ class Halo(object):
         if is_consistent: 
             self.UPIDs = np.array([-1]*file_start)
             self.PIDs = np.array([-1]*file_start)
+            self.OIDs = np.array([-1]*file_start)
 
         if self.ID == -1: self.ID = first_id
         if verbose: print("\ttracking halo %i"%self.ID)
@@ -247,7 +248,8 @@ class Halo(object):
             if is_consistent:
                 self.add_timestep(i, last_id, t['Mvir'][ri], t['Rvir'][ri], \
                                      t['X'][ri], t['Y'][ri], t['Z'][ri], \
-                                     t['VX'][ri], t['VY'][ri], t['VZ'][ri], ti, PID=t['PID'], UPID=t['UPID'])
+                                     t['VX'][ri], t['VY'][ri], t['VZ'][ri], ti, \
+                                     PID=t['PID'][ri], UPID=t['UPID'][ri], OID=t['Original_ID'][ri])
             else: 
                 self.add_timestep(i, last_id, t['Mvir'][ri], t['Rvir'][ri], \
                                      t['X'][ri], t['Y'][ri], t['Z'][ri], \
@@ -283,7 +285,8 @@ class Halo(object):
             if is_consistent:
                 self.add_timestep(i, this_id, t['Mvir'][ri], t['Rvir'][ri], \
                                      t['X'][ri], t['Y'][ri], t['Z'][ri], \
-                                     t['VX'][ri], t['VY'][ri], t['VZ'][ri], ti, PID=t['PID'][ri], UPID=t['UPID'][ri])
+                                     t['VX'][ri], t['VY'][ri], t['VZ'][ri], ti, \
+                                     PID=t['PID'][ri], UPID=t['UPID'][ri], OID=t['Original_ID'][ri])
             else:
                 self.add_timestep(i, this_id, t['Mvir'][ri], t['Rvir'][ri], \
                                      t['X'][ri], t['Y'][ri], t['Z'][ri], \
@@ -291,7 +294,7 @@ class Halo(object):
 
             i -= 1 ; this_id = t['ID'][ri]
 
-    def add_timestep(self, index, ID, mass, radius, x, y, z, vx, vy, vz, t, PID=None, UPID=None):
+    def add_timestep(self, index, ID, mass, radius, x, y, z, vx, vy, vz, t, PID=None, UPID=None, OID=None):
 
         if index == len(self.ids):
             self.ids	 = np.append(self.ids	 , ID)
@@ -308,6 +311,7 @@ class Halo(object):
             if PID is not None and UPID is not None: 
                 self.PIDs = np.append(self.PIDs  , PID)
                 self.UPIDs= np.append(self.UPIDs , UPID)
+                self.OIDs = np.append(self.OIDs  , OID)
 
         elif index < len(self.ids) and self.ids[index]==-1:
             self.ids[index]	= ID
@@ -324,6 +328,7 @@ class Halo(object):
             if PID is not None and UPID is not None:
                 self.PIDs[index]    = PID
                 self.UPIDs[index]   = UPID
+                self.OIDs[index]    = OID
 
         elif index < len(self.ids) and self.ids[index]!=-1:
             raise ValueError("attempting to change read values from the files")
