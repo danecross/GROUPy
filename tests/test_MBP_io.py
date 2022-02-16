@@ -73,9 +73,9 @@ assert(p.colnames[0]=='ID')
 
 h = Halo(0, rs, [i/10 for i in range(10)])
 h.populate_full_particles(particles, False) 
-h.save("halo0_sp.npy")
+h.save("test_output/halo0_sp.npy")
 
-h2 = load_halo("halo0_sp.npy", "test_output/particles/")
+h2 = load_halo("test_output/halo0_sp.npy", "test_output/particles/")
 
 assert(h==h2)
 

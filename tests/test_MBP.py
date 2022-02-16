@@ -17,11 +17,6 @@ f = open('test_data/output_snapshot_times.txt','r')
 times = [float(line) for line in f]
 f.close()
 
-savedir = "test_output/MBP_save/"
-if os.path.exists(savedir):
-    shutil.rmtree(savedir)
-    os.mkdir(savedir)
-
 ###############
 ## make halo ## 
 ###############

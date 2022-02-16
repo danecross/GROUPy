@@ -27,7 +27,7 @@ assert( a == 0.2 )
 
 bounds = get_particle_bounds(pfile)
 
-assert(bounds[0] == (0.000001, 0.000300, 0.000001))
+assert(bounds[0] == (0.000000, 0.000000, 0.000000))
 assert(bounds[1] == (3.105634, 2.702640, 0.970517))
 
 

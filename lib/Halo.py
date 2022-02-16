@@ -17,6 +17,7 @@ class Halo(object):
         first_idx = kwargs.get('first_timestep', 0)
         backtrack = kwargs.get('backtrack', True)
         verbose = kwargs.get('verbose', False) 
+        is_consistent = kwargs.get('is_consistent', False)
 
         self.halo_files = [] 
 
@@ -30,6 +31,10 @@ class Halo(object):
             self.radius = []
             self.x = [] ; self.y = [] ; self.z = [] 
             self.vx = [] ; self.vy = [] ; self.vz = [] 
+
+            if is_consistent:
+                self.UPIDs = [] ; self.PIDs = []
+
         elif len(args) >= 3:
 
             tag_id = args[0] 
@@ -37,9 +42,12 @@ class Halo(object):
             self.times_list = args[2]
             
             self.tag_idx = first_idx 
-            self.get_desc_list(tag_id, self.halo_files, self.times_list, file_start=first_idx, verbose=verbose)
+            self.get_desc_list(tag_id, self.halo_files, self.times_list, file_start=first_idx, \
+                               verbose=verbose, is_consistent=is_consistent)
+
             if backtrack:
-                self.backtrack(tag_id, self.halo_files, self.times_list, file_start=first_idx)
+                self.backtrack(tag_id, self.halo_files, self.times_list, \
+                               file_start=first_idx, is_consistent=is_consistent)
             if len(args)==4: 
                 particle_files = args[3]
                 self.populate_full_particles(particle_files)
@@ -63,6 +71,29 @@ class Halo(object):
                             "\t\t option to backtrack halo information from the tagging redshift (bool, optional, default=True)\n"+\
                             "\t\t flag for verbose output (bool, optional, default=False)\n"+\
                             "len of args: %i, len of kwargs: %i"%(len(args), len(kwargs)))
+
+    def get_halo_from_ID(self, ID, timestep, backtrack=True, is_consistent=False):
+        
+        h = Halo(ID, self.halo_files, self.times_list, first_timestep=timestep, backtrack=backtrack, is_consistent=is_consistent)
+        h.tag_idx = self.tag_idx
+
+        return h
+
+    def get_nearest_parent(self):
+
+        if type(self.PIDs) == int: 
+            raise Exception('NoParentID', "no parent ID loaded into the halos, be sure you use the is_consistent option")
+
+        timestep = self.tag_idx
+        return self.get_halo_from_ID(self.PIDs[timestep], timestep)
+
+    def get_largest_parent(self):
+
+        if type(self.PIDs) == int: 
+            raise Exception('NoParentID', "no parent ID loaded into the halos, be sure you use the is_consistent option")
+
+        timestep = self.tag_idx
+        return self.get_halo_from_ID(self.UPIDs[timestep], timestep)
 
     def get_mb_particle(self, timestep):
 
@@ -171,7 +202,7 @@ class Halo(object):
 
         self.particle_list += [p]
 
-    def get_desc_list(self, first_id, files, times, file_start=0, verbose=False): 
+    def get_desc_list(self, first_id, files, times, file_start=0, verbose=False, is_consistent=False): 
 
         self.ids = np.array([-1]*(file_start))
         self.mass = np.array([-1]*(file_start))
@@ -185,6 +216,10 @@ class Halo(object):
         self.vx = np.array([-1]*(file_start)) 
         self.vy = np.array([-1]*(file_start)) 
         self.vz = np.array([-1]*(file_start))
+
+        if is_consistent: 
+            self.UPIDs = np.array([-1]*file_start)
+            self.PIDs = np.array([-1]*file_start)
 
         if self.ID == -1: self.ID = first_id
         if verbose: print("\ttracking halo %i"%self.ID)
@@ -209,10 +244,16 @@ class Halo(object):
                 self.add_timestep(i, -1, -1, -1, -1, -1, -1, -1, -1, -1, ti)
                 continue
 
-            self.add_timestep(i, last_id, t['Mvir'][ri], t['Rvir'][ri], \
-                                 t['X'][ri], t['Y'][ri], t['Z'][ri], \
-                                 t['VX'][ri], t['VY'][ri], t['VZ'][ri], ti)
-            
+            if is_consistent:
+                self.add_timestep(i, last_id, t['Mvir'][ri], t['Rvir'][ri], \
+                                     t['X'][ri], t['Y'][ri], t['Z'][ri], \
+                                     t['VX'][ri], t['VY'][ri], t['VZ'][ri], ti, PID=t['PID'], UPID=t['UPID'])
+            else: 
+                self.add_timestep(i, last_id, t['Mvir'][ri], t['Rvir'][ri], \
+                                     t['X'][ri], t['Y'][ri], t['Z'][ri], \
+                                     t['VX'][ri], t['VY'][ri], t['VZ'][ri], ti)
+
+
             i += 1 ; last_id = t['DescID'][ri]
 
             if verbose and (i-file_start)%50==0: 
@@ -224,11 +265,11 @@ class Halo(object):
                     i += 1
                 break
 
-    def backtrack(self, first_id, files, times, file_start=0, verbose=False):
-        
+    def backtrack(self, first_id, files, times, file_start=0, verbose=False, is_consistent=False):
+
         this_id = first_id ; i = file_start-1
         for f,ti in zip(reversed(files[:file_start]), reversed(times[:file_start])):
-            
+           
             hf = open(f, 'r')
             header = hf.readline()[1:].split()
             hf.close()
@@ -239,13 +280,18 @@ class Halo(object):
             except IndexError:
                 return
 
-            self.add_timestep(i, this_id, t['Mvir'][ri], t['Rvir'][ri], \
-                                 t['X'][ri], t['Y'][ri], t['Z'][ri], \
-                                 t['VX'][ri], t['VY'][ri], t['VZ'][ri], ti)
+            if is_consistent:
+                self.add_timestep(i, this_id, t['Mvir'][ri], t['Rvir'][ri], \
+                                     t['X'][ri], t['Y'][ri], t['Z'][ri], \
+                                     t['VX'][ri], t['VY'][ri], t['VZ'][ri], ti, PID=t['PID'][ri], UPID=t['UPID'][ri])
+            else:
+                self.add_timestep(i, this_id, t['Mvir'][ri], t['Rvir'][ri], \
+                                     t['X'][ri], t['Y'][ri], t['Z'][ri], \
+                                     t['VX'][ri], t['VY'][ri], t['VZ'][ri], ti)
 
             i -= 1 ; this_id = t['ID'][ri]
 
-    def add_timestep(self, index, ID, mass, radius, x, y, z, vx, vy, vz, t):
+    def add_timestep(self, index, ID, mass, radius, x, y, z, vx, vy, vz, t, PID=None, UPID=None):
 
         if index == len(self.ids):
             self.ids	 = np.append(self.ids	 , ID)
@@ -258,6 +304,11 @@ class Halo(object):
             self.vy      = np.append(self.vy     , vy)
             self.vz      = np.append(self.vz     , vz)
             self.t       = np.append(self.t      , t)
+    
+            if PID is not None and UPID is not None: 
+                self.PIDs = np.append(self.PIDs  , PID)
+                self.UPIDs= np.append(self.UPIDs , UPID)
+
         elif index < len(self.ids) and self.ids[index]==-1:
             self.ids[index]	= ID
             self.mass[index]    = mass
@@ -269,6 +320,11 @@ class Halo(object):
             self.vy[index]      = vy
             self.vz[index]      = vz
             self.t[index]       = t
+    
+            if PID is not None and UPID is not None:
+                self.PIDs[index]    = PID
+                self.UPIDs[index]   = UPID
+
         elif index < len(self.ids) and self.ids[index]!=-1:
             raise ValueError("attempting to change read values from the files")
             exit()

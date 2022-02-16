@@ -6,4 +6,6 @@ python test_MBP_io.py
 python test_MBP.py
 python test_harvest.py
 python test_particle_io.py
+python test_consistent_feature.py
+
 

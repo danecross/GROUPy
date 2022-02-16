@@ -132,10 +132,54 @@ for t in times_list:
 
 
 
+######################################
+## write consistent-trees test data ##
+######################################
 
+preamble = "#ID DescID Mvir Rvir X Y Z VX VY VZ PID UPID\n\
+#Units: Masses in Msun / h\n\
+#Units: Positions in Mpc / h (comoving)\n\
+#Units: Velocities in km / s (physical)\n\
+#Units: Angular Momenta in (Msun/h) * (Mpc/h) * km/s (physical)\n\
+#Units: Radii in kpc / h (comoving)\n\
+#Units: Tidal force in dimensionless units (Rhalo / Rhill)\n"
 
+ID = [0]*num_timesteps
+Mvir = [1233453 for i in range(num_timesteps)]
+Rvir = [1231 for i in range(num_timesteps)]
+X = normal(loc=0, scale=1, size=num_timesteps)
+Y = normal(loc=0, scale=1, size=num_timesteps)
+Z = normal(loc=0, scale=1, size=num_timesteps)
+VX = normal(loc=0, scale=1, size=num_timesteps)
+VY  = normal(loc=0, scale=1, size=num_timesteps)
+VZ = normal(loc=0, scale=1, size=num_timesteps)
+PID = [0 for i in range(num_timesteps)]
+UPID = [0 for _ in range(num_timesteps)]
 
+ID_2 = [1]*num_timesteps
 
+base_rs = "really_consistent_%i.list"
+rs_files = [base_rs%i for i in range(num_timesteps)]
+
+for fn, i in zip(rs_files,range(num_timesteps)):
+
+    f = open(fn,'w')
+
+    f.write(preamble)
+
+    line = [ID[i], ID[i], Mvir[i], Rvir[i], \
+            X[i], Y[i], Z[i], VX[i], VY[i], VZ[i], PID[i], UPID[i]]
+    line = [str(l) for l in line]
+
+    f.write(" ".join(line)+'\n')
+
+    line = [ID_2[i], ID_2[i], Mvir[i], Rvir[i], \
+            X[i], Y[i], Z[i], VX[i], VY[i], VZ[i], ID[i], UPID[i]]
+    line = [str(l) for l in line]
+
+    f.write(" ".join(line))
+
+    f.close()
 
 
 
