@@ -40,6 +40,9 @@ class Halo(object):
             tag_id = args[0] 
             self.halo_files = args[1]
             self.times_list = args[2]
+
+            if not is_consistent:  self.validate_halo_files()
+            else: self.validate_halo_files_consistent()
             
             self.tag_idx = first_idx 
             self.get_desc_list(tag_id, self.halo_files, self.times_list, file_start=first_idx, \
@@ -72,6 +75,24 @@ class Halo(object):
                             "\t\t flag for verbose output (bool, optional, default=False)\n"+\
                             "len of args: %i, len of kwargs: %i"%(len(args), len(kwargs)))
 
+    def validate_halo_files(self):
+
+        if len(self.halo_files) != len(self.times_list): 
+            raise ValueError("length of halo files (%i) != length of times list (%i)"%(len(self.halo_files), len(self.times_list)))
+        for hf,t in zip(self.halo_files, self.times_list):
+            halo_time = get_time(hf)
+            if abs(t-halo_time) > 1e-4:
+                raise Exception("InconsistentFiles","file %s has different a-value (time) than expected"%hf)
+
+    def validate_halo_files_consistent(self):
+
+        if len(self.halo_files) != len(self.times_list):
+            raise ValueError("length of halo files (%i) != length of times list (%i)"%(len(self.halo_files), len(self.times_list)))
+        timesteps = [int(f.split('_')[-1][:-5]) for f in self.halo_files]
+        if not all([self.times_list[t_halo]==ti for t_halo, ti in zip(timesteps, self.times_list)]):
+            issues = ["%i != %i"%(self.times_list[t_halo],ti) for t_halo, ti in zip(timesteps, self.times_list) if self.times_list[t_halo]!=ti ]
+            raise Exception("InconsistentFiles","files have different a-value (time) than expected (%s)"%str(issues))
+
     def get_halo_from_ID(self, ID, timestep, backtrack=True, is_consistent=False):
         
         h = Halo(ID, self.halo_files, self.times_list, first_timestep=timestep, backtrack=backtrack, is_consistent=is_consistent)
@@ -85,7 +106,7 @@ class Halo(object):
             raise Exception('NoParentID', "no parent ID loaded into the halos, be sure you use the is_consistent option")
 
         timestep = self.tag_idx
-        return self.get_halo_from_ID(self.PIDs[timestep], timestep)
+        return self.get_halo_from_ID(self.PIDs[timestep], timestep, is_consistent=True)
 
     def get_largest_parent(self):
 
@@ -93,7 +114,7 @@ class Halo(object):
             raise Exception('NoParentID', "no parent ID loaded into the halos, be sure you use the is_consistent option")
 
         timestep = self.tag_idx
-        return self.get_halo_from_ID(self.UPIDs[timestep], timestep)
+        return self.get_halo_from_ID(self.UPIDs[timestep], timestep, is_consistent=True)
 
     def get_mb_particle(self, timestep):
 
@@ -357,6 +378,17 @@ class Halo(object):
         distances = np.sqrt(x**2+y**2+z**2)
 
         return distances
+
+    def get_distance_from(self, timestep, x0=None, y0=None, z0=None, other=None):
+    
+        if other is not None: return self._get_distance_from(timestep, other)
+
+        return np.sqrt((self.x-x0)**2 + (self.y-y0)**2 + (self.z-z0)**2)
+
+    def _get_distance_from(self, timestep, other):
+
+        i = timestep
+        return np.sqrt((self.x[i]-other.x[i])**2 + (self.y[i]-other.y[i])**2 + (self.z[i]-other.z[i])**2)
 
     # particle dir must exist before running save
     def save(self, name="halo.npy"):
